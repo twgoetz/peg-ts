@@ -1,0 +1,26 @@
+Grammar -> Rule* ;
+Rule -> OptWS Symbol OptWS '-' '>' OptWS Expr OptWS ';' OptWS ;
+
+Expr -> SeqElementExpr (OptWS SeqElementExpr)* ;
+SeqElementExpr -> AltElementExpr (OptWS AltOperator OptWS AltElementExpr)* ;
+AltElementExpr -> OperandExpr (OptWS Operator)? ;
+
+OperandExpr -> ParenExpr / SimpleExpr ;
+ParenExpr -> '(' OptWS Expr OptWS ')' ;
+SimpleExpr -> GapExpr / Range / Terminal / Symbol / CharSet ;
+
+GapExpr -> GapOperator OptWS Expr ;
+Terminal -> '\'' (HexChar / EscapedChar / 'a'..'z' / 'A'..'Z' / [-_()\[\]^!?.;<>/#+*]) '\'' ;
+
+Symbol -> ('a'..'z' / 'A'..'Z') ('a'..'z' / 'A'..'Z' / '0'..'9')* ;
+CharSet -> '[' (HexChar / EscapedChar / 'a'..'z' / 'A'..'Z' / [ -_()^!?,."\';<>/#+*])* ']' ;
+
+EscapedChar -> '\\' [\\nt\'\[\]] ;
+Hex -> 'a'..'f' / 'A'..'F' / '0'..'9' ;
+HexChar -> '\\' 'x' Hex Hex (Hex Hex)? ;
+Range -> Terminal OptWS '.' '.' OptWS Terminal ;
+
+Operator -> [?*+] ;
+GapOperator -> '#' ;
+AltOperator -> '/' ;
+OptWS -> [ \n\t]* ;
