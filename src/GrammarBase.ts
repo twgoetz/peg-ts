@@ -12,4 +12,6 @@ export enum GrammarExpressionCode {
   reluctantGap,
 }
 
-export const string2codePointArray = (s: string): Array<number> => Array.from(s, c => c.codePointAt(0));
+export const string2codePointArray = (s: string): Array<number> => Array.from(s, c => {
+  return c.codePointAt(0) || 0;
+});

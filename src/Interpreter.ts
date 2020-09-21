@@ -41,9 +41,13 @@ class ParseTreeTerminal {
   constructor(terminal: number) {
     this.terminal = terminal;
   }
+  toString(indent: number = 0): string {
+    const spaces = ' '.repeat(indent);
+    return `${spaces}'${String.fromCodePoint(this.terminal)}'\n`;
+  }
 }
 
-type ParseTree =  ParseTreeNonTerminal | ParseTreeTerminal;
+type ParseTree = ParseTreeNonTerminal | ParseTreeTerminal;
 
 class ParseResult {
   success: boolean;
@@ -72,7 +76,7 @@ class LookupTable {
       const entry: Array<[int, ParseTree]> = [];
       for (let j = 0; j < numCols; j++) {
         entry[j] = [SEQ, initialTree];
-      } 
+      }
       this.table[index] = entry;
     }
   }
@@ -90,7 +94,7 @@ class LookupTable {
   }
 }
 
-export const parse = (input: Array<number>, grammar: Grammar): ParseResult => {
+const parseInternal = (input: Array<number>, grammar: Grammar, startSymbol: GrammarSymbol): ParseResult => {
 
   const table = new LookupTable(input.length + 1, grammar.rules.length);
 
@@ -101,10 +105,8 @@ export const parse = (input: Array<number>, grammar: Grammar): ParseResult => {
     const { success: subSuccess, tree: subTree, pos: subPos } = parse(seq[seqIdx], pos);
     if (subSuccess) {
       // Special case: the result of parsing is a sequence; then we concatenate the sequences
-      if (subTree.nodeType === NodeType.nonTerminal) {
-        if (subTree.category === SEQ) {
-          return parseSequence(seq, seqIdx + 1, subPos, [...trees, ...subTree.dtrs])
-        }
+      if (subTree.nodeType === NodeType.nonTerminal && subTree.category === SEQ) {
+        return parseSequence(seq, seqIdx + 1, subPos, [...trees, ...subTree.dtrs])
       }
       return parseSequence(seq, seqIdx + 1, subPos, [...trees, subTree]);
     }
@@ -113,13 +115,16 @@ export const parse = (input: Array<number>, grammar: Grammar): ParseResult => {
 
   const parseClosure = (exp: GrammarExpression, pos: int, trees: Array<ParseTree>): ParseResult => {
     const { success: subSuccess, tree: subTree, pos: subPos } = parse(exp, pos);
+    // If whatever we parse, successfully or not, has 0 extent, we need to stop or we will run
+    // into an infinite loop.
+    if (pos == subPos) {
+      return new ParseResult(true, pos, new ParseTreeNonTerminal(SEQ, trees));
+    }
     if (subSuccess) {
-      if (subTree.nodeType === NodeType.nonTerminal) {
-        if(subTree.category === SEQ) {
-          return parseClosure(exp, subPos, [...trees, ...subTree.dtrs]);
-        }
-        return parseClosure(exp, subPos, [...trees, subTree]);
+      if (subTree.nodeType === NodeType.nonTerminal && subTree.category === SEQ) {
+        return parseClosure(exp, subPos, [...trees, ...subTree.dtrs]);
       }
+      return parseClosure(exp, subPos, [...trees, subTree]);
     }
     // Always return success
     return new ParseResult(true, pos, new ParseTreeNonTerminal(SEQ, trees));
@@ -130,14 +135,12 @@ export const parse = (input: Array<number>, grammar: Grammar): ParseResult => {
     const result = parse(exp, pos);
     const { success: subSuccess, tree: subTree, pos: subPos } = result;
     if (subSuccess) {
-      if (subTree.nodeType === NodeType.nonTerminal) {
-        if(subTree.category === SEQ) {
-          return parseClosure(exp, subPos, [...trees, ...subTree.dtrs]);
-        }
-        return parseClosure(exp, subPos, [...trees, subTree]);
+      if (subTree.nodeType === NodeType.nonTerminal && subTree.category === SEQ) {
+        return parseClosure(exp, subPos, [...trees, ...subTree.dtrs]);
       }
+      return parseClosure(exp, subPos, [...trees, subTree]);
     }
-    // Failed to parse
+    // Failed to parse (more)
     return result;
   }
 
@@ -205,7 +208,7 @@ export const parse = (input: Array<number>, grammar: Grammar): ParseResult => {
       return new ParseResult(true, subPos, outTree);
     }
     // Failure
-    return result;
+    return new ParseResult(false, subPos, new ParseTreeNonTerminal(symbolCode, [subTree]));
   }
 
   const parseOptional = (exp: GrammarExpression, pos: int): ParseResult => {
@@ -219,7 +222,10 @@ export const parse = (input: Array<number>, grammar: Grammar): ParseResult => {
   const parse = (exp: GrammarExpression, pos: number): ParseResult => {
     switch (exp.type) {
       case GrammarExpressionCode.terminal: {
-        return new ParseResult(exp.char === input[pos], pos, new ParseTreeTerminal(exp.char));
+        if (exp.char === input[pos]) {
+          return new ParseResult(true, pos + 1, new ParseTreeTerminal(exp.char));
+        }
+        return new ParseResult(false, pos, new ParseTreeTerminal(exp.char));
       }
       case GrammarExpressionCode.sequence: {
         return parseSequence(exp.expressions, 0, pos, []);
@@ -254,5 +260,20 @@ export const parse = (input: Array<number>, grammar: Grammar): ParseResult => {
     }
   }
 
-  return parse(grammar.symbolList[9], 0); 
+  return parse(startSymbol, 0);
+}
+
+export const parse = (input: Array<number>, grammar: Grammar): ParseResult => {
+  const startSymbol = grammar.symbolList[0];
+  return parseInternal(input, grammar, startSymbol);
+}
+
+export const parseWithStart = (input: Array<number>, grammar: Grammar, startSym: string): ParseResult => {
+  const startSymbol = grammar.symbolMap.get(startSym);
+  if (startSymbol) {
+    return parseInternal(input, grammar, startSymbol);
+  }
+  throw {
+    msg: `Unknown start symbol: ${startSym}`,
+  }
 }

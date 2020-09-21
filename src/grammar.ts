@@ -208,7 +208,7 @@ export const createBootstrapGrammar = () => {
     const { lhs, rhs } = rule;
     const lhsSym = grammar.getOrAddSymbol(lhs.name);
     const rhsExpr = createExpression(rhs, grammar);
-    grammar.rules.push(new GrammarRule(lhsSym, rhsExpr));
+    grammar.rules[lhsSym.code] = new GrammarRule(lhsSym, rhsExpr);
   }
   return grammar;
 };

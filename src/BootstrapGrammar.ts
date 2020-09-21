@@ -1,5 +1,6 @@
 import { GrammarExpressionCode } from './GrammarBase';
 
+// Datastructures for grammar expressions
 export class ExprData {
   eType: GrammarExpressionCode;
   constructor(eType: GrammarExpressionCode) {
@@ -40,6 +41,7 @@ export class RuleData {
   }
 }
 
+// Convenience functions for creating expressions
 const symbol = (name: string): ExprStringData => new ExprStringData(GrammarExpressionCode.symbol, name);
 const star = (dtr: ExprData): ExprArrayData => new ExprArrayData(GrammarExpressionCode.kleeneClosure, [dtr]);
 const opt = (dtr: ExprData): ExprArrayData => new ExprArrayData(GrammarExpressionCode.optional, [dtr]);
@@ -49,7 +51,9 @@ const alt = (dtrs: Array<ExprData>): ExprArrayData => new ExprArrayData(GrammarE
 const range = (from: string, to: string): ExprStringArrayData => new ExprStringArrayData(GrammarExpressionCode.terminalRange, [from, to]);
 const terminals = (name: string): ExprStringData => new ExprStringData(GrammarExpressionCode.terminals, name);
 
-// Represent the bootstrap grammar as a Json structure
+// Represent the bootstrap grammar as a set of objects that can be used by the interpreter. The
+// bootstrap grammar is just rich enough so it can parse the actual grammar of PEGs. The real
+// grammar lives in grammars/PEGGrammar.peg.
 export const bootstrapGrammarData: Array<RuleData> = [
   new RuleData(
     symbol('Grammar'),
@@ -57,7 +61,18 @@ export const bootstrapGrammarData: Array<RuleData> = [
   ),
   new RuleData(
     symbol('Rule'),
-    seq([symbol('OptWS'), symbol('Symbol'), symbol('OptWS'), terminal('-'), terminal('>'), symbol('OptWS'), symbol('Expr'), symbol('OptWS'), terminal(';'), symbol('OptWS')])
+    seq([
+      symbol('OptWS'),
+      symbol('Symbol'),
+      symbol('OptWS'),
+      terminal('-'),
+      terminal('>'),
+      symbol('OptWS'),
+      symbol('Expr'),
+      symbol('OptWS'),
+      terminal(';'),
+      symbol('OptWS')
+    ])
   ),
   new RuleData(
     symbol('Expr'),
@@ -69,12 +84,15 @@ export const bootstrapGrammarData: Array<RuleData> = [
   ),
   new RuleData(
     symbol('SeqElementExpr'),
-    star(seq([
-      symbol('OptWS'),
-      symbol('AltOperator'),
-      symbol('OptWS'),
-      symbol('AltElementExpr')
-    ]))
+    seq([
+      symbol('AltElementExpr'),
+      star(seq([
+        symbol('OptWS'),
+        symbol('AltOperator'),
+        symbol('OptWS'),
+        symbol('AltElementExpr')
+      ]))
+    ])
   ),
   new RuleData(
     symbol('AltElementExpr'),
@@ -150,7 +168,7 @@ export const bootstrapGrammarData: Array<RuleData> = [
           range('a', 'z'),
           range('A', 'Z'),
           range('0', '9'),
-          ])
+        ])
       )
     ])
   ),
@@ -224,605 +242,11 @@ export const bootstrapGrammarData: Array<RuleData> = [
     terminal('/'),
   ),
 ];
-// Represent the bootstrap grammar as a Json structure
-// export const bootstrapGrammarData: Array<any> = [
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'Grammar',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.kleeneClosure,
-//       dtr: {
-//         eType: GrammarExpressionCode.symbol,
-//         name: 'Rule',
-//       },
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'Rule',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'OptWS',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'Symbol',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'OptWS',
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: '-',
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: '>',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'OptWS',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'Expr',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'OptWS',
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: ';',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'OptWS',
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'Expr',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'SeqElementExpr',
-//         },
-//         {
-//           eType: GrammarExpressionCode.kleeneClosure,
-//           dtr: {
-//             eType: GrammarExpressionCode.sequence,
-//             dtrs: [
-//               {
-//                 eType: GrammarExpressionCode.symbol,
-//                 name: 'OptWS',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.symbol,
-//                 name: 'SeqElementExpr',
-//               },
-//             ]
-//           },
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'SeqElementExpr',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'AltElementExpr',
-//         },
-//         {
-//           eType: GrammarExpressionCode.kleeneClosure,
-//           dtr: {
-//             eType: GrammarExpressionCode.sequence,
-//             dtrs: [
-//               {
-//                 eType: GrammarExpressionCode.symbol,
-//                 name: 'OptWS',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.symbol,
-//                 name: 'AltOperator',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.symbol,
-//                 name: 'OptWS',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.symbol,
-//                 name: 'AltElementExpr',
-//               },
-//             ]
-//           },
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'AltElementExpr',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'OperandExpr',
-//         },
-//         {
-//           eType: GrammarExpressionCode.optional,
-//           dtr: {
-//             eType: GrammarExpressionCode.sequence,
-//             dtrs: [
-//               {
-//                 eType: GrammarExpressionCode.symbol,
-//                 name: 'OptWS',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.symbol,
-//                 name: 'Operator',
-//               },
-//             ]
-//           },
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'OperandExpr',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.alternative,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'ParenExpr',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'SimpleExpr',
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'ParenExpr',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: '(',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'OptWS',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'Expr',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'OptWS',
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: ')',
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'SimpleExpr',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.alternative,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'GapExpr',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'Range',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'Terminal',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'Symbol',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'CharSet',
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'GapExpr',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'GapOperator',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'OptWS',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'Expr',
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'Terminal',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: '\'',
-//         },
-//         {
-//           eType: GrammarExpressionCode.alternative,
-//           dtrs: [
-//             {
-//               eType: GrammarExpressionCode.symbol,
-//               name: 'HexChar',
-//             },
-//             {
-//               eType: GrammarExpressionCode.symbol,
-//               name: 'EscapedChar',
-//             },
-//             {
-//               eType: GrammarExpressionCode.terminalRange,
-//               from: 'a',
-//               to: 'z',
-//             },
-//             {
-//               eType: GrammarExpressionCode.terminalRange,
-//               from: 'A',
-//               to: 'Z',
-//             },
-//             {
-//               eType: GrammarExpressionCode.terminalRange,
-//               from: '0',
-//               to: '9',
-//             },
-//             {
-//               eType: GrammarExpressionCode.terminals,
-//               name: '-_()[]^!?.;<>/#+*',
-//             }
-//           ],
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: '\'',
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'Symbol',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.alternative,
-//           dtrs: [
-//             {
-//               eType: GrammarExpressionCode.terminalRange,
-//               from: 'a',
-//               to: 'z',
-//             },
-//             {
-//               eType: GrammarExpressionCode.terminalRange,
-//               from: 'A',
-//               to: 'Z',
-//             },
-//           ],
-//         },
-//         {
-//           eType: GrammarExpressionCode.kleeneClosure,
-//           dtr:
-//           {
-//             eType: GrammarExpressionCode.alternative,
-//             dtrs: [
-//               {
-//                 eType: GrammarExpressionCode.terminalRange,
-//                 from: 'a',
-//                 to: 'z',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.terminalRange,
-//                 from: 'A',
-//                 to: 'Z',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.terminalRange,
-//                 from: '0',
-//                 to: '9',
-//               },
-//             ],
-//           },
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'CharSet',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: '[',
-//         },
-//         {
-//           eType: GrammarExpressionCode.kleeneClosure,
-//           dtr:
-//           {
-//             eType: GrammarExpressionCode.alternative,
-//             dtrs: [
-//               {
-//                 eType: GrammarExpressionCode.symbol,
-//                 name: 'HexChar',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.symbol,
-//                 name: 'EscapedChar',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.terminalRange,
-//                 from: 'a',
-//                 to: 'z',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.terminalRange,
-//                 from: 'A',
-//                 to: 'Z',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.terminalRange,
-//                 from: '0',
-//                 to: '9',
-//               },
-//               {
-//                 eType: GrammarExpressionCode.terminals,
-//                 name: ' -_()^!?,."\';<>/#+*',
-//               }
-//             ],
-//           },
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: ']',
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'EscapedChar',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: '\\',
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminals,
-//           name: '\\nt\'[]',
-//         },
-//       ],
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'Hex',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.alternative,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.terminalRange,
-//           from: 'a',
-//           to: 'f',
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminalRange,
-//           from: 'A',
-//           to: 'F',
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminalRange,
-//           from: '0',
-//           to: '9',
-//         },
-//       ],
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'HexChar',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: '\\',
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: 'x',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'Hex',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'Hex',
-//         },
-//         {
-//           eType: GrammarExpressionCode.optional,
-//           dtr: {
-//             eType: GrammarExpressionCode.sequence,
-//             dtrs: [{
-//               eType: GrammarExpressionCode.symbol,
-//               name: 'Hex',
-//             },
-//             {
-//               eType: GrammarExpressionCode.symbol,
-//               name: 'Hex',
-//             },
-//             ]
-//           }
-//         }
-//       ],
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'Range',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.sequence,
-//       dtrs: [
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'Terminal',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'OptWS',
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: '.',
-//         },
-//         {
-//           eType: GrammarExpressionCode.terminal,
-//           name: '.',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'OptWS',
-//         },
-//         {
-//           eType: GrammarExpressionCode.symbol,
-//           name: 'Terminal',
-//         },
-//       ]
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'OptWS',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.kleeneClosure,
-//       dtr:
-//       {
-//         eType: GrammarExpressionCode.terminals,
-//         name: ' \n\t',
-//       },
-//     }
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'Operator',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.terminals,
-//       name: '?*+',
-//     },
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'GapOperator',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.terminal,
-//       name: '#',
-//     },
-//   },
-//   {
-//     lhs: {
-//       eType: GrammarExpressionCode.symbol,
-//       name: 'AltOperator',
-//     },
-//     rhs: {
-//       eType: GrammarExpressionCode.terminal,
-//       name: '/',
-//     },
-//   },
-// ];
 
-const char2int = (char: string): number => {
-  if (char && char.length > 0) {
-    return char.codePointAt(0) || -1;
-  }
-  return -1;
-}
+// const char2int = (char: string): number => {
+//   if (char && char.length > 0) {
+//     return char.codePointAt(0) || -1;
+//   }
+//   return -1;
+// }
 
